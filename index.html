@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Logging…</title>
+<style>
+:root{
+  --bg:#FAFAF7; --card:#FFFFFF; --ink:#1E2523; --mut:#5A645F; --line:#DDE2DD;
+  --ok:#2E7D32; --hold:#5B5F73; --steel:#33658A; --crit:#A82A20; --navy:#2F4858;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#10181D; --card:#17222A; --ink:#E5EAEA; --mut:#93A1A8; --line:#2A3841;
+  --ok:#7FC98B; --hold:#A9AECB; --steel:#8FBBDD; --crit:#E8938A; --navy:#7FB3D1;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;
+  align-items:center;justify-content:center;padding:20px;
+  font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  max-width:420px;width:100%;padding:36px 28px;text-align:center;}
+.mark{font-size:64px;line-height:1;margin-bottom:14px;}
+h1{font-size:24px;margin:0 0 8px;letter-spacing:-.01em;}
+p{color:var(--mut);margin:0;font-size:15.5px;}
+.spin{width:40px;height:40px;border:4px solid var(--line);border-top-color:var(--navy);
+  border-radius:50%;margin:0 auto 18px;animation:r 0.9s linear infinite;}
+@keyframes r{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none;border-top-color:var(--line)}}
+.foot{margin-top:24px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;}
+.ok h1{color:var(--ok)} .hold h1{color:var(--hold)} .steel h1{color:var(--steel)} .crit h1{color:var(--crit)}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="spin" id="spin"></div>
+  <h1 id="title">Logging your call…</h1>
+  <p id="msg">One second.</p>
+  <div class="foot">Courted Daily 10 · ChuckTown Homes</div>
+</div>
+<script>
+(function(){
+  var q = new URLSearchParams(location.search);
+  var HOOK = "https://hooks.zapier.com/hooks/catch/9913175/46gu31b/";
+  var STATES = {
+    reached:  {cls:"ok",    mark:"✅", title:"Reached — logged",     msg:"Nice work. Close this tab and dial the next one."},
+    noanswer: {cls:"hold",  mark:"📵", title:"No answer — logged",   msg:"They'll cycle back onto a list in about 10 business days."},
+    fub:      {cls:"steel", mark:"➕", title:"Adding to Follow Up Boss", msg:"They'll be in FUB by tomorrow morning, assigned to you."},
+    badfit:   {cls:"crit",  mark:"🚫", title:"Bad fit — logged",     msg:"You won't see this agent on a list again."}
+  };
+  var a = (q.get("a")||"").toLowerCase();
+  var s = STATES[a];
+  var card=document.getElementById("card"), spin=document.getElementById("spin"),
+      title=document.getElementById("title"), msg=document.getElementById("msg");
+  function fail(t,m){ spin.remove(); card.className="card crit";
+    title.textContent=t; msg.textContent=m; document.title="Not logged"; }
+  if(!s || !q.get("k") || !q.get("i") || !q.get("c") || !q.get("d")){
+    fail("This link is incomplete","Go back to the email and tap the button again."); return;
+  }
+  fetch(HOOK + "?" + q.toString(), {method:"GET"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j && j.status === "success"){
+        spin.remove(); card.className = "card " + s.cls;
+        title.textContent = s.title; msg.textContent = s.msg;
+        var mk=document.createElement("div"); mk.className="mark"; mk.textContent=s.mark;
+        card.insertBefore(mk, title); document.title = s.title;
+      } else { fail("Couldn't log that tap","Tap the button in the email once more."); }
+    })
+    .catch(function(){ fail("Couldn't log that tap","Check your connection, then tap the button in the email once more."); });
+})();
+</script>
+</body>
+</html>
