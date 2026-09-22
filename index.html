@@ -9,10 +9,12 @@
 :root{
   --bg:#FAFAF7; --card:#FFFFFF; --ink:#1E2523; --mut:#5A645F; --line:#DDE2DD;
   --ok:#2E7D32; --hold:#5B5F73; --steel:#33658A; --crit:#A82A20; --navy:#2F4858;
+  --field:#FFFFFF;
 }
 @media (prefers-color-scheme: dark){:root{
   --bg:#10181D; --card:#17222A; --ink:#E5EAEA; --mut:#93A1A8; --line:#2A3841;
   --ok:#7FC98B; --hold:#A9AECB; --steel:#8FBBDD; --crit:#E8938A; --navy:#7FB3D1;
+  --field:#101A21;
 }}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;
@@ -29,6 +31,30 @@ p{color:var(--mut);margin:0;font-size:15.5px;}
 @media (prefers-reduced-motion: reduce){.spin{animation:none;border-top-color:var(--line)}}
 .foot{margin-top:24px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;}
 .ok h1{color:var(--ok)} .hold h1{color:var(--hold)} .steel h1{color:var(--steel)} .crit h1{color:var(--crit)}
+
+/* note box */
+.note{display:none;margin-top:22px;padding-top:20px;border-top:1px solid var(--line);text-align:left;}
+.note.on{display:block}
+.note label{display:block;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.note .hint{color:var(--mut);font-size:13.5px;line-height:1.45;margin:0 0 9px;}
+textarea{width:100%;min-height:96px;resize:vertical;background:var(--field);color:var(--ink);
+  border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:16px/1.45 inherit;
+  -webkit-appearance:none;}
+textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(47,72,88,.14);}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;}
+button{background:var(--navy);color:#FFFFFF;border:0;border-radius:10px;padding:12px 20px;
+  font:600 16px/1 inherit;cursor:pointer;-webkit-appearance:none;}
+button:disabled{opacity:.5;cursor:default}
+@media (prefers-color-scheme: dark){button{color:#10181D}}
+.count{color:var(--mut);font-size:12.5px;font-variant-numeric:tabular-nums;}
+.saved{display:none;margin-top:22px;padding-top:20px;border-top:1px solid var(--line);text-align:left;}
+.saved.on{display:block}
+.saved .hd{color:var(--ok);font-weight:700;font-size:15.5px;margin-bottom:4px;}
+.saved .txt{color:var(--ink);font-size:15px;line-height:1.5;}
+.saved .what{color:var(--mut);font-size:13.5px;margin-top:8px;}
+.link{background:none;border:0;padding:0;margin-top:10px;color:var(--steel);font:15px/1 inherit;
+  text-decoration:underline;cursor:pointer;}
+@media (prefers-color-scheme: dark){.link{color:var(--steel)}}
 </style>
 </head>
 <body>
@@ -36,27 +62,65 @@ p{color:var(--mut);margin:0;font-size:15.5px;}
   <div class="spin" id="spin"></div>
   <h1 id="title">Logging your call…</h1>
   <p id="msg">One second.</p>
+
+  <div class="note" id="note">
+    <label for="txt">Anything worth knowing about this one?</label>
+    <p class="hint" id="hint">Optional. One line is plenty.</p>
+    <textarea id="txt" maxlength="500" autocapitalize="sentences" autocorrect="on"
+      placeholder="Said call back after the spring market…"></textarea>
+    <div class="row">
+      <button id="save" type="button">Save note</button>
+      <span class="count" id="count"></span>
+    </div>
+  </div>
+
+  <div class="saved" id="savedbox">
+    <div class="hd">📝 Note saved</div>
+    <div class="txt" id="savedtxt"></div>
+    <div class="what" id="savedwhat"></div>
+    <button class="link" id="edit" type="button">Edit it</button>
+  </div>
+
   <div class="foot">Courted Daily 10 · ChuckTown Homes</div>
 </div>
 <script>
 (function(){
   var q = new URLSearchParams(location.search);
+  // Taps go to the original hook, untouched since 2026-08-07. Notes go to a second hook
+  // whose Zapier side can write the ledger's note column; splitting them means a fault in
+  // the note path can never take a tap down with it.
   var HOOK = "https://hooks.zapier.com/hooks/catch/9913175/46gu31b/";
+  var NOTE_HOOK = "https://hooks.zapier.com/hooks/catch/9913175/KyZVPoCynYnKHHm6/";
   var STATES = {
-    reached:  {cls:"ok",    mark:"✅", title:"Reached — logged",     msg:"Nice work. Close this tab and dial the next one."},
-    noanswer: {cls:"hold",  mark:"📵", title:"No answer — logged",   msg:"They'll cycle back onto a list in about 10 business days."},
-    fub:      {cls:"steel", mark:"➕", title:"Adding to Follow Up Boss", msg:"They'll be in FUB by tomorrow morning, assigned to you."},
-    badfit:   {cls:"crit",  mark:"🚫", title:"Bad fit — logged",     msg:"You won't see this agent on a list again."}
+    reached:  {cls:"ok",    mark:"✅", title:"Reached — logged",     msg:"Nice work. Close this tab and dial the next one.",
+               after:"We'll put it back in front of you the next time their name comes up."},
+    noanswer: {cls:"hold",  mark:"📵", title:"No answer — logged",   msg:"They'll cycle back onto a list in about 10 business days.",
+               after:"We'll show it to you again when they cycle back onto your list."},
+    fub:      {cls:"steel", mark:"➕", title:"Adding to Follow Up Boss", msg:"They'll be in FUB by tomorrow morning, assigned to you.",
+               after:"It'll be on their Follow Up Boss record in the morning, next to everything we already know about them."},
+    badfit:   {cls:"crit",  mark:"🚫", title:"Bad fit — logged",     msg:"You won't see this agent on a list again.",
+               after:"Saved with the reason you took them off the list."}
   };
   var a = (q.get("a")||"").toLowerCase();
   var s = STATES[a];
   var card=document.getElementById("card"), spin=document.getElementById("spin"),
-      title=document.getElementById("title"), msg=document.getElementById("msg");
+      title=document.getElementById("title"), msg=document.getElementById("msg"),
+      note=document.getElementById("note"), txt=document.getElementById("txt"),
+      save=document.getElementById("save"), count=document.getElementById("count"),
+      hint=document.getElementById("hint"), savedbox=document.getElementById("savedbox"),
+      savedtxt=document.getElementById("savedtxt"), savedwhat=document.getElementById("savedwhat"),
+      edit=document.getElementById("edit");
+
   function fail(t,m){ spin.remove(); card.className="card crit";
     title.textContent=t; msg.textContent=m; document.title="Not logged"; }
+
   if(!s || !q.get("k") || !q.get("i") || !q.get("c") || !q.get("d")){
     fail("This link is incomplete","Go back to the email and tap the button again."); return;
   }
+
+  // The tap is logged FIRST and on its own, exactly as it always was. The note box only
+  // appears afterwards, so a caller who closes the tab without typing loses nothing and
+  // the one-tap habit is untouched.
   fetch(HOOK + "?" + q.toString(), {method:"GET"})
     .then(function(r){ return r.json(); })
     .then(function(j){
@@ -65,9 +129,51 @@ p{color:var(--mut);margin:0;font-size:15.5px;}
         title.textContent = s.title; msg.textContent = s.msg;
         var mk=document.createElement("div"); mk.className="mark"; mk.textContent=s.mark;
         card.insertBefore(mk, title); document.title = s.title;
+        note.className = "note on";
       } else { fail("Couldn't log that tap","Tap the button in the email once more."); }
     })
     .catch(function(){ fail("Couldn't log that tap","Check your connection, then tap the button in the email once more."); });
+
+  function tick(){
+    var n = txt.value.length;
+    count.textContent = n > 400 ? (500 - n) + " left" : "";
+    save.disabled = txt.value.trim().length === 0;
+  }
+  txt.addEventListener("input", tick);
+  tick();
+
+  edit.addEventListener("click", function(){
+    savedbox.className = "saved"; note.className = "note on"; txt.focus();
+  });
+
+  save.addEventListener("click", function(){
+    var body = txt.value.trim();
+    if(!body) return;
+    save.disabled = true; save.textContent = "Saving…";
+    // same hook, same tap identity, action swapped to "note" so the nightly run can tell
+    // a typed note from an outcome and never counts it as a call
+    var p = new URLSearchParams(q.toString());
+    p.set("a", "note");
+    p.set("n", body);
+    fetch(NOTE_HOOK + "?" + p.toString(), {method:"GET"})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        save.textContent = "Save note";
+        if(j && j.status === "success"){
+          savedtxt.textContent = "“" + body + "”";
+          savedwhat.textContent = s.after;
+          note.className = "note"; savedbox.className = "saved on";
+        } else {
+          hint.textContent = "That didn't save. Tap Save note once more.";
+          save.disabled = false;
+        }
+      })
+      .catch(function(){
+        save.textContent = "Save note";
+        hint.textContent = "That didn't save. Check your connection and tap Save note again.";
+        save.disabled = false;
+      });
+  });
 })();
 </script>
 </body>
