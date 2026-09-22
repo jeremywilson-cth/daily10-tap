@@ -37,13 +37,17 @@ p{color:var(--mut);margin:0;font-size:15.5px;}
 .note.on{display:block}
 .note label{display:block;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:3px;}
 .note .hint{color:var(--mut);font-size:13.5px;line-height:1.45;margin:0 0 9px;}
+/* the font shorthand cannot take `inherit` for the family, which silently left this as the
+   browser's default monospace; spell the stack out */
 textarea{width:100%;min-height:96px;resize:vertical;background:var(--field);color:var(--ink);
-  border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:16px/1.45 inherit;
-  -webkit-appearance:none;}
+  border:1px solid var(--line);border-radius:10px;padding:11px 12px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;line-height:1.45;-webkit-appearance:none;}
 textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(47,72,88,.14);}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;}
 button{background:var(--navy);color:#FFFFFF;border:0;border-radius:10px;padding:12px 20px;
-  font:600 16px/1 inherit;cursor:pointer;-webkit-appearance:none;}
+  font-family:inherit;font-size:16px;font-weight:600;line-height:1;
+  cursor:pointer;-webkit-appearance:none;}
 button:disabled{opacity:.5;cursor:default}
 @media (prefers-color-scheme: dark){button{color:#10181D}}
 .count{color:var(--mut);font-size:12.5px;font-variant-numeric:tabular-nums;}
@@ -52,7 +56,8 @@ button:disabled{opacity:.5;cursor:default}
 .saved .hd{color:var(--ok);font-weight:700;font-size:15.5px;margin-bottom:4px;}
 .saved .txt{color:var(--ink);font-size:15px;line-height:1.5;}
 .saved .what{color:var(--mut);font-size:13.5px;margin-top:8px;}
-.link{background:none;border:0;padding:0;margin-top:10px;color:var(--steel);font:15px/1 inherit;
+.link{background:none;border:0;padding:0;margin-top:10px;color:var(--steel);
+  font-family:inherit;font-size:15px;line-height:1;
   text-decoration:underline;cursor:pointer;}
 @media (prefers-color-scheme: dark){.link{color:var(--steel)}}
 </style>
